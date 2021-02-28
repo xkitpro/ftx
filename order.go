@@ -21,15 +21,23 @@ const (
 	Market           = "market"
 )
 
+type Status string
+
+const (
+	New    Status = "new"
+	Open          = "open"
+	Closed        = "closed"
+)
+
 type Order struct {
 	ID            int
-	ClientID      *string
+	ClientID      string
 	Market        string
 	Type          string
-	Side          string
+	Side          Side
 	Price         float64
 	Size          float64
-	Status        string
+	Status        Status
 	FilledSize    float64
 	RemainingSize float64
 	ReduceOnly    bool
@@ -113,6 +121,21 @@ func (c *Client) ModifyOrder(id int, opt *ModifyOrderOptions) (*Order, *http.Res
 	return o, resp, err
 }
 
+func (c *Client) ModifyOrderByClientID(id string, opt *ModifyOrderOptions) (*Order, *http.Response, error) {
+	req, err := c.NewRequest("POST", fmt.Sprintf("/orders/by_client_id/%s/modify", id), opt)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	o := new(Order)
+	resp, err := c.Do(req, true, &o)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return o, resp, err
+}
+
 type GetOpenOrdersOptions struct {
 	Market string `url:"market"`
 }
@@ -135,6 +158,24 @@ type CancelAllOrdersOptions struct {
 
 func (c *Client) CancelAllOrders(opt *CancelAllOrdersOptions) (*http.Response, error) {
 	req, err := c.NewRequest("DELETE", "/orders", opt)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req, true, nil)
+}
+
+func (c *Client) CancelOrder(id int) (*http.Response, error) {
+	req, err := c.NewRequest("DELETE", fmt.Sprintf("/orders/%d", id), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.Do(req, true, nil)
+}
+
+func (c *Client) CancelOrderByClientID(id string) (*http.Response, error) {
+	req, err := c.NewRequest("DELETE", fmt.Sprintf("/orders/by_client_id/%s", id), nil)
 	if err != nil {
 		return nil, err
 	}

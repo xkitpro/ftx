@@ -18,6 +18,9 @@ type Position struct {
 	Size                         float64
 	UnrealizedPnl                float64
 	CollateralUsed               float64
+
+	RecentAverageOpenPrice float64
+	RecentBreakEvenPrice   float64
 }
 
 type GetPositionsOptions struct {

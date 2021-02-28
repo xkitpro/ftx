@@ -3,8 +3,9 @@ package ftx
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -55,8 +56,6 @@ func (c *Client) NewRequest(method string, path string, opt interface{}) (*http.
 			return nil, err
 		}
 
-		fmt.Println(string(b))
-
 		body = bytes.NewBuffer(b)
 	}
 
@@ -84,6 +83,13 @@ func (c *Client) Do(req *http.Request, sign bool, v interface{}) (*http.Response
 		req = c.sign(req)
 	}
 
+	if req.Body != nil {
+		buf := bytes.Buffer{}
+		body, _ := req.GetBody()
+		buf.ReadFrom(body)
+		log.Println(req.Method, req.URL, buf.String())
+	}
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -96,8 +102,15 @@ func (c *Client) Do(req *http.Request, sign bool, v interface{}) (*http.Response
 	r := io.TeeReader(resp.Body, os.Stderr)
 	// r := resp.Body
 	err = json.NewDecoder(r).Decode(&response)
+	if err != nil {
+		return resp, err
+	}
 
-	return resp, err
+	if !response.Success {
+		return resp, errors.New(response.Error)
+	}
+
+	return resp, nil
 }
 
 func (client *Client) sign(req *http.Request) *http.Request {
